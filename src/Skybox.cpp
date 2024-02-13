@@ -1,13 +1,12 @@
 #include "Skybox.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include "filesystem.h"
 
 Skybox::Skybox()
 {
 }
 
-Skybox::Skybox(std::string faces[])
+Skybox::Skybox(std::string faces[],std::string directory)
 {
     float skyboxVertices[] =
     {
@@ -43,7 +42,9 @@ Skybox::Skybox(std::string faces[])
 	3, 7, 6,
 	6, 2, 3
     };
-    Shader skyboxShader(FileSystem::getPath("Resources/Shaders/skybox.vert").c_str(),FileSystem::getPath("Resources/Shaders/skybox.frag").c_str());
+    std::string vertexPath = directory + "/Resources/Shaders/skybox.vert";
+    std::string fragmentPath = directory + "/Resources/Shaders/skybox.frag";
+    Shader skyboxShader(vertexPath.c_str(),fragmentPath.c_str());
     skyboxShader.use();
     glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
     glEnable(GL_DEPTH_TEST);
@@ -78,7 +79,7 @@ Skybox::Skybox(std::string faces[])
 	for (unsigned int i = 0; i < 6; i++)
 	{
 		int width, height, nrChannels;
-		unsigned char* data = stbi_load(FileSystem::getPath(faces[i]).c_str(), &width, &height, &nrChannels, 0);
+		unsigned char* data = stbi_load((directory + faces[i]).c_str(), &width, &height, &nrChannels, 0);
 		if (data)
 		{
 			stbi_set_flip_vertically_on_load(false);
@@ -101,11 +102,8 @@ Skybox::Skybox(std::string faces[])
 			std::cout << "Failed to load texture: " << faces[i] << std::endl;
 			stbi_image_free(data);
 		}
-	}
-
+    }
     skyboxShaderObj = skyboxShader;
-
-
 }
 
 void Skybox::DrawSkyBox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix)

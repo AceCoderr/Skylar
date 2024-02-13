@@ -4,14 +4,12 @@
 
 class Skybox
 {
-    private:
+public:
     Shader skyboxShaderObj;
     unsigned int skyboxVAO;
     unsigned int cubemapTexture;
-public:
-
     Skybox();
-    Skybox(std::string faces[]);
+    Skybox(std::string faces[],std::string directory);
     ~Skybox();
     void DrawSkyBox(glm::mat4 viewMatrix,glm::mat4 projectionMatrix);
 };

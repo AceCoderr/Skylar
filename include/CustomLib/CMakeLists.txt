@@ -14,6 +14,7 @@ LIBRARY_HEADERS
 "imgui_impl_glfw.h"
 "GUI.h"
 "Skybox.h"
+"Renderer.h"
 )
 set(
 LIBRARY_INCLUDES
