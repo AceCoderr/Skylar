@@ -19,6 +19,8 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include "Transform.h"
+//#include "Bone.h"
 using namespace std;
 
 unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
@@ -28,24 +30,100 @@ class Model
 public:
     // model data
     vector<Texture> textures_loaded;	// stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
-    vector<Mesh>    meshes;
+    vector<Mesh> meshes;
     string directory;
     bool gammaCorrection;
+    Transform transform;
+    std::vector<Model*> childrens;
+    glm::mat4 localTransform;
+    glm::mat4 initialTransform;
+    Model* parent;
 
+    //default Constructor
+    Model();
     // constructor, expects a filepath to a 3D model.
     Model(string const &path, bool gamma = false) : gammaCorrection(gamma)
     {
+        parent = nullptr;
+        localTransform = glm::mat4(1.0f);
+        initialTransform = glm::mat4(1.0f);
         loadModel(path);
     }
 
     // draws the model, and thus all its meshes
     void Draw(Shader &shader)
     {
+        shader.setMat4("model", localTransform);
         for(unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
+        for (Model* child : childrens)
+        {
+            child->Draw(shader);
+        }
+    }
+    void setTransform(const glm::mat4& transform)
+    {
+        localTransform = transform;
+    }
+    void addChildren(Model* Child,glm::mat4 transform){
+        Child->setTransform(transform);
+        childrens.emplace_back(Child);
+        Child->parent = this;
+    }
+    void clearChildren()
+    {
+        this->childrens.clear();
+    }
+    void Model::setTranslation(const glm::vec3& position) {
+    Model::localTransform = glm::translate(Model::localTransform, position);
+}
+    void updateTransform(glm::mat4& globalTransform = glm::mat4(1.0f))    {
+        localTransform =  globalTransform * localTransform;
+        for(Model* child : childrens)
+        {
+            child->updateTransform(localTransform);
+        }
+    }
+    void setPosition(const glm::vec3 position)
+    {
+        this->transform.position = position;
+    }
+    void Model::setTranslation() {
+        Model::localTransform = glm::translate(Model::localTransform, transform.position);
+    }
+    void Model::setRotation(const float angle, const glm::vec3& axis, bool is_radians) {
+        Model::localTransform = glm::rotate(Model::localTransform, is_radians ? angle : glm::radians(angle), axis);
+    }
+    glm::mat4 setInitialTransform()
+    {
+        initialTransform = glm::translate(initialTransform,glm::vec3(transform.getPosition()));
+        localTransform = glm::translate(localTransform,glm::vec3(transform.getPosition()));
+        return initialTransform;
+    }
+    void Model::restoreTransform() {
+    Model::localTransform = Model::initialTransform;
+    // Model::position = glm::vec3(Model::initTransform[3]);
+    for (Model* child : childrens) {
+        child->restoreTransform();
+    }
+}
+glm::vec3 Model::getPosition() {
+    return glm::vec3(Model::localTransform[3]);
+}
+void Model::updatePosition(const glm::mat4& globalTransform = glm::mat4(1.0f)) {
+    auto temp = globalTransform * Model::localTransform;
+    // update position info
+    this->transform.position = glm::vec3(temp[3]);
+
+    if(!childrens.empty())
+    {
+        for (Model* child : childrens) {
+            child->updatePosition(temp);
+        }
     }
 
-private:
+}
+
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
     void loadModel(string const &path)
     {
@@ -65,6 +143,7 @@ private:
         processNode(scene->mRootNode, scene);
     }
 
+private:
     // processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
     void processNode(aiNode *node, const aiScene *scene)
     {
@@ -203,6 +282,7 @@ private:
 };
 
 
+
 unsigned int TextureFromFile(const char *path, const string &directory, bool gamma)
 {
     string filename = string(path);
@@ -224,14 +304,13 @@ unsigned int TextureFromFile(const char *path, const string &directory, bool gam
             format = GL_RGBA;
 
         glBindTexture(GL_TEXTURE_2D, textureID);
+
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
-
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         stbi_image_free(data);
     }
     else

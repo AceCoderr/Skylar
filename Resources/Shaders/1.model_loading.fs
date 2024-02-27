@@ -5,35 +5,48 @@ in VS_OUT {
     vec3 FragPos;
     vec3 Normal;
     vec2 TexCoords;
+    vec3 TangentLightPos;
+    vec3 TangentViewPos;
+    vec3 TangentFragPos;
 } fs_in;
 
 uniform sampler2D texture_diffuse1;
-uniform vec3 lightDir;
+uniform sampler2D texture_normal1;
+uniform vec3 lightPos;
 uniform vec3 viewPos;
-uniform vec3 camPos;
+uniform float normal_strength;
 
-vec4 calBlinnPhongLighting()
+
+
+void calBlinnPhongLighting()
 {
-    float ambientIntensity = 0.3f;
-    float diffuseIntensity = 0.9f;
-    float specularIntensity = 0.7f;
-    vec3 lightColor = vec3(1.0f,1.0f,1.0f);
-    vec4 ambient = vec4(lightColor,1.0f) * ambientIntensity;
-    float diffuse = max(dot(normalize(fs_in.Normal) ,normalize(lightDir)),0.0f);
-    vec4 diffuseColour = vec4(diffuse *lightColor* diffuseIntensity,1.0f);
-    vec3 fragToEye = normalize(camPos - fs_in.FragPos);
-    vec3 reflectedVertex = normalize(reflect(normalize(fs_in.Normal),lightDir));
-    vec4 specularColour = vec4(0, 0, 0, 0);
-    float specularFactor = dot(fragToEye, reflectedVertex);
-    specularFactor = pow(specularFactor, 32.0f);
-    //blinn-phong shading for specular highlights
-    specularColour = vec4(specularFactor *  lightColor * specularIntensity, 1.0f);
-    return (ambient + diffuseColour + specularColour);
+    // obtain normal from normal map in range [0,1]
+    vec3 normal = mix(vec3(0.225,0.26,0.24),texture(texture_normal1, fs_in.TexCoords).rgb,normal_strength);
+    // transform normal vector to range [-1,1]
+    normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
+
+    // get diffuse color
+    vec3 color = texture(texture_diffuse1, fs_in.TexCoords).rgb;
+    // ambient
+    vec3 ambient = 0.45 * color;
+    // diffuse
+    vec3 lightDir = normalize(fs_in.TangentLightPos - fs_in.TangentFragPos);
+    float diff = max(dot(lightDir, normal), 0.0);
+    vec3 diffuse = diff * color;
+    // specular
+    vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
+    vec3 reflectDir = reflect(lightDir, normal);
+    vec3 halfwayDir = normalize(-lightDir + viewDir);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), 7.0);
+
+    vec3 specular = vec3(.2f) * spec;
+    FragColor = vec4(ambient + diffuse + specular, 1.0);
 }
 
 void main()
 {
     vec4 finalColor = vec4(1.0f);
-    finalColor = calBlinnPhongLighting();
-    FragColor = finalColor * texture(texture_diffuse1, fs_in.TexCoords);//vec3(0.196078f,0.6f,0.8f);
+    //finalColor = calBlinnPhongLighting();
+    //FragColor = finalColor * texture(texture_diffuse1, fs_in.TexCoords);//vec3(0.196078f,0.6f,0.8f);
+    calBlinnPhongLighting();
 }

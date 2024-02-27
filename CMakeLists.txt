@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.24)
 # Version of the project (Major.Minor.Patch)
 # Supported Languages
 project(
-ReflectanceModel
+Skylar
 VERSION 1.0.0
 LANGUAGES C CXX
 )

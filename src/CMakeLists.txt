@@ -4,6 +4,7 @@ EXEC_SOURCES
 "imgui_impl_glfw.cpp"
 "GUI.cpp"
 "Skybox.cpp"
+"Bone.cpp"
 )
 # Adding the main file as an executable to our project
 add_executable(

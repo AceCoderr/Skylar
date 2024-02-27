@@ -15,6 +15,7 @@ LIBRARY_HEADERS
 "GUI.h"
 "Skybox.h"
 "Renderer.h"
+"Bone.h"
 )
 set(
 LIBRARY_INCLUDES
