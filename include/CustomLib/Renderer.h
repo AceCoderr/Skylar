@@ -12,7 +12,10 @@ float rotationMat[3] = {0.0f,1.0f,0.0f};
 //bool isphongblinn = false;
 glm::vec3 lightPos(0.0f, 3.0f, 3.0f);
 
-
+//Animate
+float startPos[3] = {0.0f,0.0f,0.0f};
+float endPos[3] = {0.0f,0.0f,0.0f};
+bool animate = false;
 float normal_intensity = 0.0f;
 float targetPosition[3] = {0.0f,0.0f,0.0f};
 bool IK=false;
@@ -208,6 +211,23 @@ class Render{
             ImGui::SliderInt("MipmapType", &MipmapType,0,3);
             ImGui::SliderFloat("Texture Scale",&TextureScale,0.0f,50.0f);
             ImGui::SliderInt("Chain Lenght",&NumberOfBones,1,5);
+            ImGui::DragFloat3("start Position",startPos,0.1);
+            ImGui::DragFloat3("End position",endPos,0.1);
+            if(ImGui::Button("Animate"))
+            {
+                animate = true;
+            }
+            if(ImGui::Button("stop"))
+            {
+                animate = false;
+                startPos[0] = 0.0f;
+                startPos[1] = 0.0f;
+                startPos[2] = 0.0f;
+                endPos[0] = 0.0f;
+                endPos[1] = 0.0f;
+                endPos[2] = 0.0f;
+
+            }
             // if(ImGui::Button("Update"))
             // {
             //     LoadModels(guiManager);

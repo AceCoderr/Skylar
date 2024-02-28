@@ -113,15 +113,21 @@ int main()
     glm::mat4 trans1 = ChildModel.setInitialTransform();
     RootModel.addChildren(&ChildModel,trans1);
 
+    Model ChildModel2(ChildFile);
+    ChildModel2.transform.position = glm::vec3(0.0f,1.2f,0.0f);
+    glm::mat4 trans2 = ChildModel2.setInitialTransform();
+    ChildModel.addChildren(&ChildModel2,trans2);
+
     // Model EndEffectorModel(EndEffector);
     Model EndEffectorModel(EndEffector);
     EndEffectorModel.transform.position = glm::vec3(0.0f,1.2f,0.0f);
     glm::mat4 trans = EndEffectorModel.setInitialTransform();
-    ChildModel.addChildren(&EndEffectorModel,trans);
+    ChildModel2.addChildren(&EndEffectorModel,trans);
 
     Model TargetModel(TargetFile);
     TargetModel.transform.position = glm::vec3(2.0f,3.0f,2.0f);
     TargetModel.setInitialTransform();
+
 #pragma endregion
 
     //Getting directory Info
@@ -134,6 +140,7 @@ int main()
     //render.generateObjects(camera);
 
     //loop
+    glm::vec3 interpolatedPos(0.0f);
     while (!glfwWindowShouldClose(window))
     {
         //glClearColor(backGroundColor[0],backGroundColor[1],backGroundColor[2], 1.0f);
@@ -144,6 +151,10 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        float t = glfwGetTime();
+
+        // Use the fractional part of t to keep it within the range [0, 1)
+        t = fmod(t, 1.0f);
         //mouse and keyboard inputs
         processInput(window);
 
@@ -181,10 +192,20 @@ int main()
         //Projection and view matrix
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
+        glm::vec3 startPosition(startPos[0],startPos[1],startPos[2]);
+        glm::vec3 endPosition(endPos[0],endPos[1],endPos[2]);
+#pragma region animmate
+        if(animate)
+        {
+            interpolatedPos = glm::mix(startPosition,endPosition,t);
+            printf("x-%f\t y-%f\t z-%f\n",interpolatedPos.x,interpolatedPos.y,interpolatedPos.z);
+            TargetModel.transform.position = glm::vec3(interpolatedPos[0], interpolatedPos[1],interpolatedPos[2]);
+        }
 
+#pragma endregion
 #pragma region ik_calculations
         if(IK)
-        {
+        {   //need to figure out way for dynamic chainlenght
             // if(NumberOfBones > 1)
             // {
             //     for(int i = 0;i < NumberOfBones; ++i)
@@ -192,11 +213,13 @@ int main()
             //         Model* currBone = EndEffectorModel.parent;
             //         currBone->clearChildren();
             //         currBone->addChildren(new Model(ChildFile),trans);
+            //         //EndEffectorModel.parent = currBone->childrens[0];
             //     }
             // }
             //setting and updating target model position
+            if(!animate){
             TargetModel.transform.position = glm::vec3(targetPosition[0],targetPosition[1],targetPosition[2]);
-
+            }
             //setting current Shader
             ShaderList[0].use();
 
