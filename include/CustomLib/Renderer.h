@@ -11,7 +11,10 @@ const unsigned int SCR_HEIGHT = 980;
 float rotationMat[3] = {0.0f,1.0f,0.0f};
 //bool isphongblinn = false;
 glm::vec3 lightPos(0.0f, 3.0f, 3.0f);
-
+//Anaglyph
+bool Anaglyph = false;
+float IOD = 0.065f;
+float convergencePoint = 5.0f;
 //Animate
 float startPos[3] = {0.0f,0.0f,0.0f};
 float endPos[3] = {0.0f,0.0f,0.0f};
@@ -19,6 +22,8 @@ bool animate = false;
 float normal_intensity = 0.0f;
 float targetPosition[3] = {0.0f,0.0f,0.0f};
 bool IK=false;
+bool isToein = false;
+bool isFrustum = false;
 int NumberOfBones = 2.0f;
 bool PolygonMode = false;
 float TextureScale = 1.0f;
@@ -133,7 +138,7 @@ class Render{
         string LoadModels(GUI guiManager){
             string ModelFile = FileSystem::getPath("Resources/Objects/Brick/BrickObj.obj").c_str();
             Model Cube(ModelFile);
-            Cube.transform.position = glm::vec3(5.0f,0.0f,0.0f);
+            Cube.transform.position = glm::vec3(0.0f,0.0f,0.0f);
             ModelList.push_back(Cube);
             return ModelFile;
             //Bone root;
@@ -151,9 +156,30 @@ class Render{
             else {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
-            glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-            glm::mat4 view = camera.GetViewMatrix();
 
+            glm::mat4 projection = camera.calculateProjMat(FOV,SCR_WIDTH,SCR_HEIGHT);
+            glm::mat4 projection1 = camera.calculateProjMat(FOV,SCR_WIDTH,SCR_HEIGHT);
+            glm::mat4 view = camera.GetViewMatrix();
+            glm::mat4 view1 = camera.GetViewMatrix();
+            if(Anaglyph)
+            {
+                if(isToein)
+                {
+                    convergencePoint = glm::distance(camera.Position,ModelList[0].transform.position);
+                    view = camera.calCulateViewMatrixForToeIn(1,IOD,convergencePoint);
+                    view1 = camera.calCulateViewMatrixForToeIn(0,IOD,convergencePoint);
+                    isFrustum = false;
+                }
+                if(isFrustum)
+                {
+                    convergencePoint = glm::distance(camera.Position,ModelList[0].transform.position);
+                    projection = camera.calculateFrustumMat(1,IOD,convergencePoint,SCR_WIDTH,SCR_HEIGHT);
+                    projection1 = camera.calculateFrustumMat(0,IOD,convergencePoint,SCR_WIDTH,SCR_HEIGHT);
+                    isToein = false;
+                }
+
+            }
+            ShaderList[0].use();
             if(!ModelList.empty())
             {
                 for(Model _3DModel : ModelList)
@@ -165,11 +191,28 @@ class Render{
                     ShaderList[0].setVec3("lightPos", lightPos);
                     ShaderList[0].setFloat("normal_strength", normal_intensity);
                     ShaderList[0].setFloat("texScale",TextureScale);
-                    model1 = glm::translate(model1, glm::vec3(_3DModel.transform.position.x,_3DModel.transform.position.y,_3DModel.transform.position.z));
+                    //model1 = glm::rotate(model1,glm::radians(rotationMat[1]),glm::vec3(0.0f,1.0f,0.0f));
+                    //model1 = glm::translate(model1, glm::vec3(_3DModel.transform.position.x,_3DModel.transform.position.y,_3DModel.transform.position.z));
                     _3DModel.updatePosition(model1);
                     _3DModel.updateTransform(model1);
+                    glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
+                    glClear(GL_DEPTH_BUFFER_BIT);
                     _3DModel.Draw(ShaderList[0]);
                     _3DModel.restoreTransform();
+                    glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
+                    glClear(GL_DEPTH_BUFFER_BIT);
+
+                    ShaderList[0].setMat4("projection", projection1);
+                    ShaderList[0].setMat4("view", view1);
+                    _3DModel.Draw(ShaderList[0]);
+                    _3DModel.restoreTransform();
+                    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                    glClear(GL_DEPTH_BUFFER_BIT);
+
+                    // glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+                    // glColorMask();
+                    // _3DModel.Draw(ShaderList[0]);
+
                 }
             }
         }
@@ -213,6 +256,15 @@ class Render{
             ImGui::SliderInt("Chain Lenght",&NumberOfBones,1,5);
             ImGui::DragFloat3("start Position",startPos,0.1);
             ImGui::DragFloat3("End position",endPos,0.1);
+            ImGui::Checkbox("Anaglyph",&Anaglyph);
+            if(Anaglyph)
+            {
+                ImGui::Checkbox("Toe-in",&isToein);
+                ImGui::Checkbox("Frustum",&isFrustum);
+                ImGui::SliderFloat("IOD",&IOD,0.0f,0.1f);
+                ImGui::SliderFloat("Convergence Point",&convergencePoint,0.0f,10.0f);
+                ImGui::SliderFloat("FOV",&FOV,0.0f,180.0f);
+            }
             if(ImGui::Button("Animate"))
             {
                 animate = true;

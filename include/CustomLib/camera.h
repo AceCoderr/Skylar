@@ -21,6 +21,10 @@ const float PITCH       =  0.0f;
 const float SPEED       =  2.5f;
 const float SENSITIVITY =  0.1f;
 const float ZOOM        =  45.0f;
+float FOV = 45.0f;
+const float scale = 7.135f;
+const float nearClipping = 0.1f;
+const float farClipping = 100.f;
 
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
@@ -110,6 +114,61 @@ public:
             Zoom = 1.0f;
         if (Zoom > 45.0f)
             Zoom = 45.0f;
+    }
+
+    glm::mat4 Camera::calCulateViewMatrixForToeIn(bool isLeftEye,float iod, const float& distanceToConvergencePoint)
+    {
+        // float eyeOffset = (isLeftEye ? -1 : 1) * iod / 2.0f;
+        // //glm::vec3 rightDirection = glm::normalize(glm::cross(Front,Up));
+        // glm::vec3 eyePosition = glm::vec3(Position.x  + eyeOffset,Position.y, Position.z);
+
+        // glm::vec3 focalPoint = Position + Front * DistanceFromCam;
+
+        // float toe_in_Angle = atan(eyeOffset / DistanceFromCam);
+
+        // glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), toe_in_Angle, Up);
+        // glm::vec3 rotatedFront = glm::vec3(rotation * glm::vec4(Front, 0.0f));
+
+        // return glm::lookAt(eyePosition,eyePosition + rotatedFront,Up);
+        float halfIOD = iod / 2.0f;
+        float eyeOffset = isLeftEye ? -halfIOD : halfIOD;
+        glm::vec3 rightDirection = glm::normalize(glm::cross(Front, Up));
+
+        // Calculate eye position for the left or right eye
+        glm::vec3 eyePosition = Position + rightDirection * eyeOffset;
+
+        // Dynamic toe-in angle calculation
+        float toeInAngleRadians = std::atan(halfIOD / distanceToConvergencePoint);
+        float rotationDirection = isLeftEye ? 1.0f : -1.0f; // Determine rotation direction based on eye
+
+       glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), rotationDirection * toeInAngleRadians, glm::vec3(0.0f,1.0f,0.0f));
+
+        // Rotate the front vector
+        glm::vec3 rotatedFront = glm::vec3(rotationMatrix * glm::vec4(Front, 0.0f));
+
+        // Calculate view matrix for the current eye
+        return glm::lookAt(eyePosition, eyePosition + rotatedFront, Up);
+    }
+
+    glm::mat4  Camera::calculateFrustumMat(bool isLeftEye, const float& IOD, const float& convergenceDistance, const unsigned int width, const unsigned int height) {
+        // Calculate eye offset: half of IOD to the left or right
+        float eyeOffset = (isLeftEye ? -1 : 1) * IOD / 2.0f;
+
+        float halfFOV = FOV / 2.0f;
+        float top = tan(halfFOV) * nearClipping;
+        float bottom = -top;
+        float right = (GLfloat(width)/GLfloat(height)) * top;
+        float left = -right;
+
+        // Apply the eye position offset to create an asymmetric frustum
+        left += eyeOffset * nearClipping / convergenceDistance;
+        right += eyeOffset * nearClipping / convergenceDistance;
+
+        // Using GLM to create the frustum matrix
+        return glm::frustum(left, right, bottom, top, nearClipping, farClipping);
+    }
+   glm::mat4 Camera::calculateProjMat(float FOV,const unsigned int width, const unsigned int height) {
+        return glm::perspective(glm::radians(FOV), GLfloat(width)/GLfloat(height), nearClipping, farClipping);
     }
 
 private:
