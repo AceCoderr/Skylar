@@ -16,6 +16,11 @@ LIBRARY_HEADERS
 "Skybox.h"
 "Renderer.h"
 "Bone.h"
+"Light.h"
+"PointLight.h"
+"SpotLight.h"
+"DirLight.h"
+
 )
 set(
 LIBRARY_INCLUDES

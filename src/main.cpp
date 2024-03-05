@@ -101,6 +101,8 @@ int main()
     //loading Models
     string path = render.LoadModels(guiManager);
 
+    render.CreateLights();
+
 #pragma region ik_models
     //Setting Root Bone
     Model RootModel(RootFile);
@@ -175,6 +177,8 @@ int main()
 
         //rendering UI
         render.RenderUI(guiManager);
+
+
         //render.renderObjects(camera);
         if(!IK)
         {
