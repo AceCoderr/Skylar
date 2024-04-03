@@ -1,19 +1,20 @@
+#include "Renderer.h"
 #include <glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
 #include <iostream>
 #include <string.h>
 #include "camera.h"
-#include "Renderer.h"
 #include "Skybox.h"
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+void onMouseClick(GLFWwindow* window, int button, int action, int mods);
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 4.0f));
@@ -39,12 +40,16 @@ std::string facesCubemap[6] =
 		"/Resources/Cubemap/front.jpg",
 		"/Resources/Cubemap/back.jpg"
 	};
+//mouse Position
+double xpos = 0.0f;
+double ypos = 0.0f;
 
 //IK Models
 string RootFile = FileSystem::getPath("Resources/Objects/bone/Bone1.obj").c_str();
 string ChildFile = FileSystem::getPath("Resources/Objects/bone/Bone1.obj").c_str();
 string TargetFile = FileSystem::getPath("Resources/Objects/bone/target.obj").c_str();
 string EndEffector = FileSystem::getPath("Resources/Objects/bone/target.obj").c_str();
+
 
 void RenderSkybox(Camera camera, Skybox skybox){
             glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -78,6 +83,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetMouseButtonCallback(window, onMouseClick);
 
     // tell GLFW to capture our mouse
     // glad: load all OpenGL function pointers
@@ -141,6 +147,8 @@ int main()
     //generating objects
     //render.generateObjects(camera);
 
+
+
     //loop
     glm::vec3 interpolatedPos(0.0f);
     while (!glfwWindowShouldClose(window))
@@ -152,6 +160,11 @@ int main()
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
+        glfwGetCursorPos(window, &xpos, &ypos);
+
+        camera.mouseXpos = xpos;
+        camera.mouseYpos = ypos;
 
         float t = glfwGetTime();
 
@@ -169,7 +182,8 @@ int main()
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
 
-        //Rendering skybox as needed
+        //Rendering skybox as neededglClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         if(isSkyboxEnabled)
         {
             RenderSkybox(camera,skybox);
@@ -364,4 +378,20 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+
+void onMouseClick(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT)
+    {
+        if(action == GLFW_PRESS)
+        {
+        camera.isMouseButtonCick = true;
+
+        }
+        else if( action == GLFW_RELEASE )
+        {
+            camera.isMouseButtonCick = false;
+        }
+    }
 }

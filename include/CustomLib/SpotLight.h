@@ -32,8 +32,8 @@ public:
     shader.use();
     // Send the number of point lights to the shader
     shader.setFloat("material.shininess",8.0f);
-    printf("inten - %f\n",spotlight.Intensity);
-    printf("x - %f\n",spotlight.Position.x);
+    // printf("inten - %f\n",spotlight.Intensity);
+    // printf("x - %f\n",spotlight.Position.x);
 
     shader.setFloat("spotlight.intensity",spotlight.Intensity);
     shader.setFloat("spotlight.cutOff",glm::cos(glm::radians(spotlight.innerCutoff)));

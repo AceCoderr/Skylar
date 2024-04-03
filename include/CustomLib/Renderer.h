@@ -8,6 +8,7 @@
 #include "PointLight.h"
 #include "SpotLight.h"
 #include "DirLight.h"
+#include "VertexPicker.h"
 
 //ViewPort settings
 const unsigned int SCR_WIDTH = 1320;
@@ -91,6 +92,8 @@ float normal_intensity = 0.0f;
 bool PolygonMode = false;
 
 
+
+
 class Render{
     public:
         std::vector<Shader> ShaderList;
@@ -146,13 +149,13 @@ class Render{
         }
 
         string LoadModels(GUI guiManager){
-            string ModelFile = FileSystem::getPath("Resources/Objects/Plane/plane.obj").c_str();
+            string ModelFile = FileSystem::getPath("Resources/Objects/Brick/BrickObj.obj").c_str();
+
             Model Cube(ModelFile);
             Cube.transform.position = glm::vec3(0.0f,1.5f,0.0f);
-
             ModelList.push_back(Cube);
+
             return ModelFile;
-            //Bone root;
         }
 
         void CreateLights(){
@@ -191,6 +194,8 @@ class Render{
 
         void RenderScene(Camera camera,GUI guiManager)
         {
+
+            VertexPicker vertexpick;
             //render
             //Draw all 3D models
             if (PolygonMode) {
@@ -225,6 +230,7 @@ class Render{
             ShaderList[0].use();
 
             setLightUniforms_realTime(camera);
+            std::vector<Mesh> available_meshs;
 
             if(!ModelList.empty())
             {
@@ -237,31 +243,54 @@ class Render{
                     ShaderList[0].setFloat("normal_strength", normal_intensity);
                     ShaderList[0].setFloat("texScale",TextureScale);
                     ShaderList[0].setBool("isNormalMap",isNormalMap);
-                    //model1 = glm::scale(model1,glm::vec3(0.7f,0.7f,0.7f));
+                    //model1 = glm::scale(model1,glm::vec3(0.3f,0.3f,0.3f));
                     //model1 = glm::rotate(model1,glm::radians(rotationMat[1]),glm::vec3(0.0f,1.0f,0.0f));
                     //model1 = glm::translate(model1, glm::vec3(_3DModel.transform.position.x,_3DModel.transform.position.y,_3DModel.transform.position.z));
                     _3DModel.updatePosition(model1);
                     _3DModel.updateTransform(model1);
-                    glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
-                    glClear(GL_DEPTH_BUFFER_BIT);
+                    if(Anaglyph)
+                    {
+                        glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
+                        glClear(GL_DEPTH_BUFFER_BIT);
+                    }
                     _3DModel.Draw(ShaderList[0]);
                     _3DModel.restoreTransform();
-                    glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
-                    glClear(GL_DEPTH_BUFFER_BIT);
-
-                    ShaderList[0].setMat4("projection", projection1);
-                    ShaderList[0].setMat4("view", view1);
-                    _3DModel.Draw(ShaderList[0]);
-                    _3DModel.restoreTransform();
-                    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-                    glClear(GL_DEPTH_BUFFER_BIT);
-
-                    // glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-                    // glColorMask();
-                    // _3DModel.Draw(ShaderList[0]);
+                    if(Anaglyph)
+                    {
+                        glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
+                        glClear(GL_DEPTH_BUFFER_BIT);
+                        ShaderList[0].setMat4("projection", projection1);
+                        ShaderList[0].setMat4("view", view1);
+                        _3DModel.Draw(ShaderList[0]);
+                        _3DModel.restoreTransform();
+                        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                        glClear(GL_DEPTH_BUFFER_BIT);
+                    }
+                    else{
+                        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                        glClear(GL_DEPTH_BUFFER_BIT);
+                    }
+                    for(auto& mesh : _3DModel.meshes){
+                        available_meshs.push_back(mesh);
+                    }
 
                 }
             }
+            if(camera.isMouseButtonCick){
+                glm::vec3 ray_world = vertexpick.MousePosToWorldRay(camera.mouseXpos,camera.mouseYpos,SCR_WIDTH,SCR_HEIGHT,view,projection);
+
+                printf("total meshes  - %u\n",available_meshs.size());
+                std::vector<Vertex> available_vertices;
+                for(auto& mesh : available_meshs)
+                {
+                    available_vertices.insert(available_vertices.end(),mesh.vertices.begin(),mesh.vertices.end());
+                }
+                printf("available vertices - %u\n",available_vertices.size());
+                int location = vertexpick.FindClosestVertex(camera.Position,ray_world,available_vertices);
+                printf("index selected = %d\n",location);
+                camera.isMouseButtonCick = false;
+            }
+
         }
         void setLightUniforms_realTime(Camera camera)
         {
@@ -301,30 +330,6 @@ class Render{
             DirecLight.setupLightUniforms(ShaderList[0],DirecLight);
 
         }
-        // void renderObjects(Camera camera)
-        // {
-        //     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        //     glm::mat4 view = camera.GetViewMatrix();
-        //     // Bind texture
-        //     // glActiveTexture(GL_TEXTURE0);
-        //     // glBindTexture(GL_TEXTURE_2D, texture);
-        //     ShaderList[0].use();
-        //     glm::mat4 model = glm::mat4(1.0f);
-        //     //model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-        //     model = glm::translate(model, glm::vec3(0.0f,0.0f,0.0f));
-        //     // Use shader program
-        //     ShaderList[0].setMat4("projection", projection);
-        //     ShaderList[0].setMat4("view", view);
-        //     ShaderList[0].setVec3("viewPos",camera.Position);
-        //     ShaderList[0].setInt("texture_diffuse1",texture);
-        //     ShaderList[0].setMat4("model", model);
-        //     ShaderList[0].setVec3("lightPos", lightPos);
-        //     ShaderList[0].setFloat("normal_strength", normal_intensity);
-        //             // Draw plane
-        //     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
-        //                     // Unbind VAO
-        //     //glBindVertexArray(0);
-        // }
 
         void RenderUI(GUI guiManager){
             guiManager.BeginFrame();
@@ -366,7 +371,7 @@ class Render{
                         for(auto& pointLight : pointlights)
                         {
                             ImGui::ColorEdit3("Light color",LightColor);
-                            ImGui::SliderFloat("Intensity",&pointLight.Intensity,1.0f,10.0f);
+                            ImGui::SliderFloat("Intensity",&pointLight.Intensity,0.0f,3.0f);
                             ImGui::DragFloat3("Light Position",LightPosition,0.1);
                             ImGui::Text("Ambient\t\tDiffuse\t\tSpecular");
                             ImGui::DragFloat3("",AmbientDiffuseSpecular,0.1f,0.0f,1.0f);
@@ -398,7 +403,7 @@ class Render{
                     ImGui::Checkbox("Directional Light",&isDirLight);
                     if(isDirLight){
                         ImGui::ColorEdit3("Sun color",SunColor);
-                        ImGui::SliderFloat("Intensity",&sunIntensity,0.0f,3.0f);
+                        ImGui::SliderFloat("Intensity",&sunIntensity,0.0f,0.5f);
                         ImGui::Text("Ambient\t\tDiffuse\t\tSpecular");
                         ImGui::DragFloat3("",DirlightAmbientDiffuseSpecular,0.1f,0.0f,1.0f);
                         ImGui::DragFloat3("Sunlight Direction",lightDir,0.1);

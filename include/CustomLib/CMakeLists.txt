@@ -20,7 +20,7 @@ LIBRARY_HEADERS
 "PointLight.h"
 "SpotLight.h"
 "DirLight.h"
-
+"VertexPicker.h"
 )
 set(
 LIBRARY_INCLUDES
