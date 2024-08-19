@@ -91,7 +91,8 @@ float normal_intensity = 0.0f;
 //Wireframe view
 bool PolygonMode = false;
 
-
+//Ray tracing
+bool isRTX = false;
 
 
 class Render{
@@ -444,6 +445,18 @@ class Render{
                         ImGui::SliderFloat("IOD",&IOD,0.0f,0.1f);
                         ImGui::SliderFloat("Convergence Point",&convergencePoint,0.0f,10.0f);
                         ImGui::SliderFloat("FOV",&FOV,0.0f,180.0f);
+                    }
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Ray Tracing")) {
+                    ImGui::Checkbox("Ray Tracing",&isRTX);
+                    if(isRTX)
+                    {
+                        // ImGui::Checkbox("Toe-in",&isToein);
+                        // ImGui::Checkbox("Frustum",&isFrustum);
+                        // ImGui::SliderFloat("IOD",&IOD,0.0f,0.1f);
+                        // ImGui::SliderFloat("Convergence Point",&convergencePoint,0.0f,10.0f);
+                        // ImGui::SliderFloat("FOV",&FOV,0.0f,180.0f);
                     }
                     ImGui::EndTabItem();
                 }
